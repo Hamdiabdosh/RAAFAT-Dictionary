@@ -1,0 +1,201 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  contributor
+  reviewer
+  admin
+}
+
+enum EntryStatus {
+  verified
+  pending_review
+  rejected
+}
+
+enum SuggestionStatus {
+  pending
+  approved
+  rejected
+}
+
+enum VoteType {
+  correct
+  incorrect
+  needs_discussion
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  role         UserRole @default(contributor)
+  reputation   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  entries       Entry[]
+  suggestions   Suggestion[]   @relation("SubmittedBy")
+  resolutions   Suggestion[]   @relation("ResolvedBy")
+  votes         Vote[]
+  discussions   Discussion[]
+  notifications Notification[]
+
+  emailVerified Boolean   @default(false)
+  image         String?
+  sessions      Session[]
+  accounts      Account[]
+
+  @@map("users")
+}
+
+model Entry {
+  id             String      @id @default(uuid())
+  harari         String      @default("")
+  english        String      @default("")
+  amharic        String      @default("")
+  oromo          String      @default("")
+  category       String?
+  partOfSpeech   String?
+  exampleHarari  String?
+  exampleEnglish String?
+  status         EntryStatus @default(pending_review)
+  source         String?
+  importRef      Int?        @unique // original meshia id
+  createdBy      String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  creator     User?        @relation(fields: [createdBy], references: [id])
+  suggestions Suggestion[]
+  discussions Discussion[]
+
+  @@index([status])
+  @@map("entries")
+}
+
+model Suggestion {
+  id         String           @id @default(uuid())
+  entryId    String
+  fieldName  String // "harari" | "english" | "amharic" | "oromo" | "exampleHarari" | "exampleEnglish"
+  oldValue   String
+  newValue   String
+  userId     String
+  status     SuggestionStatus @default(pending)
+  createdAt  DateTime         @default(now())
+  resolvedAt DateTime?
+  resolvedBy String?
+
+  entry       Entry        @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  submitter   User         @relation("SubmittedBy", fields: [userId], references: [id])
+  resolver    User?        @relation("ResolvedBy", fields: [resolvedBy], references: [id])
+  votes       Vote[]
+  discussions Discussion[]
+
+  @@index([status])
+  @@index([entryId])
+  @@map("suggestions")
+}
+
+model Vote {
+  id           String   @id @default(uuid())
+  suggestionId String
+  userId       String
+  voteType     VoteType
+  createdAt    DateTime @default(now())
+
+  suggestion Suggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id])
+
+  @@unique([suggestionId, userId])
+  @@map("votes")
+}
+
+model Discussion {
+  id           String   @id @default(uuid())
+  entryId      String
+  suggestionId String?
+  userId       String
+  content      String
+  parentId     String?
+  createdAt    DateTime @default(now())
+
+  entry      Entry        @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  suggestion Suggestion?  @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+  user       User         @relation(fields: [userId], references: [id])
+  parent     Discussion?  @relation("Replies", fields: [parentId], references: [id])
+  replies    Discussion[] @relation("Replies")
+
+  @@index([entryId])
+  @@map("discussions")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("Session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("Account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("Verification")
+}
