@@ -1,17 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth-utils'
+import { notifyReviewers } from '@/lib/notifications'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const q = searchParams.get('q')?.trim() ?? ''
   const lang = searchParams.get('lang') ?? 'all'
+  const category = searchParams.get('category')?.trim()
+  const idsParam = searchParams.get('ids')?.trim()
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
-  const limit = 20
+  const limit = idsParam ? 100 : 20
   const offset = (page - 1) * limit
 
+  const entrySelect = {
+    id: true,
+    harari: true,
+    english: true,
+    amharic: true,
+    oromo: true,
+    category: true,
+    partOfSpeech: true,
+    exampleHarari: true,
+    exampleEnglish: true,
+    status: true,
+    source: true,
+  } as const
+
   try {
-    const where = q
+    if (idsParam) {
+      const ids = idsParam.split(',').filter(Boolean).slice(0, 100)
+      const entries = await prisma.entry.findMany({
+        where: { id: { in: ids } },
+        select: entrySelect,
+      })
+      const order = new Map(ids.map((id, i) => [id, i]))
+      entries.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
+      return NextResponse.json({
+        entries,
+        pagination: { page: 1, limit: entries.length, total: entries.length, totalPages: 1, hasNext: false, hasPrev: false },
+      })
+    }
+
+    const searchWhere = q
       ? lang === 'all'
         ? {
             OR: [
@@ -30,20 +61,15 @@ export async function GET(req: NextRequest) {
               : { oromo: { contains: q, mode: 'insensitive' as const } }
       : {}
 
+    const where = {
+      ...searchWhere,
+      ...(category ? { category } : {}),
+    }
+
     const [entries, total] = await Promise.all([
       prisma.entry.findMany({
         where,
-        select: {
-          id: true,
-          harari: true,
-          english: true,
-          amharic: true,
-          oromo: true,
-          category: true,
-          partOfSpeech: true,
-          status: true,
-          source: true,
-        },
+        select: entrySelect,
         orderBy: [{ status: 'asc' }, { harari: 'asc' }],
         take: limit,
         skip: offset,
@@ -109,6 +135,11 @@ export async function POST(req: NextRequest) {
         source: 'Community contribution',
       },
     })
+
+    await notifyReviewers(
+      `New entry submitted: "${entry.harari}" (${entry.english})`,
+      '/review'
+    )
 
     return NextResponse.json({ entry }, { status: 201 })
   } catch (error) {

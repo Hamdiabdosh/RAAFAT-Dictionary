@@ -71,7 +71,7 @@ export default async function EntryPage({ params }: Props) {
   }
 
   return (
-    <Shell showSearch={false}>
+    <Shell>
       <Suspense fallback={null}>
         <EntryDetailPage entry={serializedEntry} />
       </Suspense>

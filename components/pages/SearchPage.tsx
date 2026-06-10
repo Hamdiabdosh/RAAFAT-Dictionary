@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Search, Loader2 } from 'lucide-react'
+import { Search, Loader2, GraduationCap } from 'lucide-react'
+import Link from 'next/link'
 import { EntryCard } from '../dictionary/EntryCard'
 import { searchEntries, type SearchResponse } from '@/lib/api'
 import type { DictionaryEntry } from '@/lib/types'
@@ -78,6 +79,13 @@ export function SearchPage() {
         <p className="text-muted-foreground">
           Explore and preserve the Harari language
         </p>
+        <Link
+          href="/learn"
+          className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+        >
+          <GraduationCap size={16} />
+          Start learning →
+        </Link>
       </div>
 
       {/* Search input */}

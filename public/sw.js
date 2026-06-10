@@ -1,5 +1,5 @@
 const CACHE = 'raafat-v1'
-const PRECACHE = ['/', '/manifest.json', '/icon.svg']
+const PRECACHE = ['/', '/manifest.json', '/icon.svg', '/icon-192.png', '/icon-512.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

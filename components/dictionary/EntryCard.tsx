@@ -3,6 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { DictionaryEntry } from '@/lib/types'
+import { StudyBookmark } from '@/components/learn/StudyBookmark'
 import { Copy, Check, AlertCircle } from 'lucide-react'
 import { useState } from 'react'
 
@@ -104,7 +105,17 @@ export function EntryCard({ entry }: EntryCardProps) {
           )}
 
           {/* Footer */}
-          <div className="flex items-center justify-end pt-4 border-t border-border/50">
+          <div className="flex items-center justify-end gap-1 pt-4 border-t border-border/50">
+            <StudyBookmark
+              entry={{
+                id: entry.id,
+                harari: entry.harari,
+                english: entry.english,
+                amharic: entry.amharic,
+                oromo: entry.oromo,
+                category: entry.category,
+              }}
+            />
             <button
               onClick={(e) => {
                 e.preventDefault()

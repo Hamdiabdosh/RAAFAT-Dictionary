@@ -5,13 +5,13 @@ import { Menu, X, Moon, Sun, LogOut, LogIn } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { authClient } from '@/lib/auth-client'
+import { NotificationBell } from '@/components/layout/NotificationBell'
 
 interface ShellProps {
   children: React.ReactNode
-  showSearch?: boolean
 }
 
-export function Shell({ children, showSearch = true }: ShellProps) {
+export function Shell({ children }: ShellProps) {
   const router = useRouter()
   const { data: session } = authClient.useSession()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -41,15 +41,19 @@ export function Shell({ children, showSearch = true }: ShellProps) {
 
   const role = (session?.user as { role?: string } | undefined)?.role
   const isReviewer = role === 'reviewer' || role === 'admin'
+  const isAdminUser = role === 'admin'
 
   const navItems = [
     { href: '/', label: 'Dictionary', icon: '📚' },
+    { href: '/learn', label: 'Learn', icon: '🎓' },
     ...(isReviewer ? [{ href: '/review', label: 'Review Queue', icon: '✓' }] : []),
+    ...(isAdminUser ? [{ href: '/admin', label: 'Admin', icon: '⚙️' }] : []),
     { href: '/contribute', label: 'Contribute', icon: '✏️' },
     { href: '/about', label: 'About', icon: 'ℹ️' },
   ]
 
-  const isActive = (href: string) => pathname === href
+  const isActive = (href: string) =>
+    href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/')
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -119,6 +123,7 @@ export function Shell({ children, showSearch = true }: ShellProps) {
             <div className="border-t border-sidebar-border p-4 space-y-2">
               {session?.user ? (
                 <>
+                  <NotificationBell />
                   <Link
                     href="/profile"
                     className="block px-4 text-xs text-sidebar-foreground/60 truncate hover:text-sidebar-foreground"
@@ -148,26 +153,7 @@ export function Shell({ children, showSearch = true }: ShellProps) {
 
         {/* Main Content */}
         <main className="flex-1 w-full md:ml-64 min-h-screen">
-          {showSearch && (
-            <div className="sticky top-0 z-20 border-b border-border bg-card/80 backdrop-blur-sm">
-              <div className="max-w-6xl mx-auto px-4 md:px-6 py-4">
-                <div className="flex gap-4 items-center">
-                  <div className="flex-1 relative">
-                    <input
-                      type="text"
-                      placeholder="Search Harari words..."
-                      className="w-full px-4 py-2 rounded-lg bg-input border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    />
-                  </div>
-                  <button className="hidden md:flex px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium">
-                    Search
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="max-w-6xl mx-auto px-4 md:px-6 py-6">{children}</div>
+          <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 pb-24 md:pb-6">{children}</div>
         </main>
       </div>
 

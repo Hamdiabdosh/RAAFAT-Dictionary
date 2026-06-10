@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth, requireRole } from '@/lib/auth-utils'
 import { aggregateVotes, isValidSuggestionField } from '@/lib/suggestions'
+import { notifyReviewers } from '@/lib/notifications'
 
 export async function GET(req: NextRequest) {
   try {
@@ -88,6 +89,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid fieldName' }, { status: 400 })
     }
 
+    const entry = await prisma.entry.findUnique({
+      where: { id: entryId },
+      select: { harari: true },
+    })
+
     const suggestion = await prisma.suggestion.create({
       data: {
         entryId,
@@ -97,6 +103,11 @@ export async function POST(req: NextRequest) {
         userId: session.user.id,
       },
     })
+
+    await notifyReviewers(
+      `New correction on "${entry?.harari || 'entry'}" (${fieldName})`,
+      '/review'
+    )
 
     return NextResponse.json({ suggestion }, { status: 201 })
   } catch (error) {

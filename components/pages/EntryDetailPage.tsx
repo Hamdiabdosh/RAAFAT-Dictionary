@@ -7,6 +7,7 @@ import {
   ArrowLeft, CheckCircle2, Clock, Copy, Check, ChevronDown
 } from 'lucide-react'
 import { authClient } from '@/lib/auth-client'
+import { StudyBookmark } from '@/components/learn/StudyBookmark'
 
 interface Suggestion {
   id: string
@@ -126,21 +127,37 @@ export function EntryDetailPage({ entry }: Props) {
           <h1 className="font-ethiopic text-4xl font-bold text-primary leading-tight">
             {entry.harari || '—'}
           </h1>
-          {entry.status === 'verified' ? (
-            <span className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 shrink-0">
-              <CheckCircle2 size={12} /> Verified
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 shrink-0">
-              <Clock size={12} /> Pending Review
-            </span>
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            <StudyBookmark
+              entry={{
+                id: entry.id,
+                harari: entry.harari,
+                english: entry.english,
+                amharic: entry.amharic,
+                oromo: entry.oromo,
+                category: entry.category ?? undefined,
+              }}
+              showLabel
+            />
+            {entry.status === 'verified' ? (
+              <span className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 shrink-0">
+                <CheckCircle2 size={12} /> Verified
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 shrink-0">
+                <Clock size={12} /> Pending Review
+              </span>
+            )}
+          </div>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
           {entry.category && (
-            <span className="px-2 py-0.5 rounded text-xs bg-muted text-muted-foreground">
-              {entry.category}
-            </span>
+            <Link
+              href={`/learn/topics/${encodeURIComponent(entry.category)}`}
+              className="px-2 py-0.5 rounded text-xs bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+            >
+              Topic: {entry.category}
+            </Link>
           )}
           {entry.partOfSpeech && (
             <span className="px-2 py-0.5 rounded text-xs bg-muted text-muted-foreground italic">

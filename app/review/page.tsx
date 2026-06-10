@@ -17,7 +17,7 @@ export default async function ReviewPage() {
   }
 
   return (
-    <Shell showSearch={false}>
+    <Shell>
       <ReviewQueuePage />
     </Shell>
   )

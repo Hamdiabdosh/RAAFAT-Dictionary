@@ -3,7 +3,7 @@ import { ProfilePage } from '@/components/pages/ProfilePage'
 
 export default function Profile() {
   return (
-    <Shell showSearch={false}>
+    <Shell>
       <ProfilePage />
     </Shell>
   )

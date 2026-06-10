@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { fetchProfile } from '@/lib/api'
 import { authClient } from '@/lib/auth-client'
-import { Loader2, Award, FileText, ThumbsUp } from 'lucide-react'
+import { Loader2, Award, FileText, ThumbsUp, Shield } from 'lucide-react'
 
 interface ProfileData {
   id: string
@@ -97,6 +97,16 @@ export function ProfilePage() {
       <p className="text-xs text-center text-muted-foreground">
         Member since {new Date(profile.createdAt).toLocaleDateString()}
       </p>
+
+      {profile.role === 'admin' && (
+        <Link
+          href="/admin"
+          className="flex items-center justify-center gap-2 p-4 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors"
+        >
+          <Shield size={18} className="text-primary" />
+          <span className="font-medium text-primary">Open admin dashboard</span>
+        </Link>
+      )}
     </div>
   )
 }

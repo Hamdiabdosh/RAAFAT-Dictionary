@@ -33,3 +33,7 @@ export async function requireRole(...roles: UserRole[]) {
 export function isReviewer(role?: string) {
   return role === 'reviewer' || role === 'admin'
 }
+
+export function isAdmin(role?: string) {
+  return role === 'admin'
+}

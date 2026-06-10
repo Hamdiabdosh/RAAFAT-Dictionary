@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireRole } from '@/lib/auth-utils'
 import { isValidSuggestionField } from '@/lib/suggestions'
+import { createNotification } from '@/lib/notifications'
 
 export async function PATCH(
   req: NextRequest,
@@ -38,6 +39,14 @@ export async function PATCH(
           resolvedBy: session.user.id,
         },
       })
+
+      await createNotification({
+        userId: suggestion.userId,
+        type: 'suggestion_rejected',
+        message: `Your correction to "${suggestion.fieldName}" was not accepted`,
+        link: `/entry/${suggestion.entryId}`,
+      })
+
       return NextResponse.json({ suggestion: updated })
     }
 
@@ -63,6 +72,13 @@ export async function PATCH(
         data: { reputation: { increment: 5 } },
       }),
     ])
+
+    await createNotification({
+      userId: suggestion.userId,
+      type: 'suggestion_approved',
+      message: `Your correction to "${suggestion.fieldName}" was approved (+5 reputation)`,
+      link: `/entry/${suggestion.entryId}`,
+    })
 
     return NextResponse.json({ suggestion: updatedSuggestion, entry: updatedEntry })
   } catch (error) {

@@ -2,12 +2,22 @@ import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { prisma } from '@/lib/db'
 
+const authUrl = process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+const isProduction = process.env.NODE_ENV === 'production'
+
 export const auth = betterAuth({
-  baseURL: {
-    allowedHosts: ['localhost:*', '127.0.0.1:*'],
-    protocol: 'http',
-    fallback: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
-  },
+  baseURL: isProduction
+    ? authUrl
+    : {
+        allowedHosts: ['localhost:*', '127.0.0.1:*'],
+        protocol: 'http',
+        fallback: authUrl,
+      },
+  trustedOrigins: [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : []),
+  ],
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),

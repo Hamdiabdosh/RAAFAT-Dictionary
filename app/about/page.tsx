@@ -5,7 +5,7 @@ import { Globe, Users, Heart, BookOpen } from 'lucide-react'
 
 export default function AboutPage() {
   return (
-    <Shell showSearch={true}>
+    <Shell>
       <div className="space-y-12">
         {/* Hero Section */}
         <div className="text-center space-y-4">

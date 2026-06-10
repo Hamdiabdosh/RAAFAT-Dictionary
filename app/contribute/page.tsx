@@ -2,26 +2,60 @@
 
 import { Shell } from '@/components/layout/Shell'
 import { Plus, AlertCircle, CheckCircle2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { authClient } from '@/lib/auth-client'
 import { createEntry } from '@/lib/api'
+
+const DRAFT_KEY = 'raafat-contribute-draft'
+
+const emptyForm = {
+  harari: '',
+  english: '',
+  amharic: '',
+  oromo: '',
+  partOfSpeech: 'noun',
+  category: '',
+  exampleHarari: '',
+  exampleEnglish: '',
+}
 
 export default function ContributePage() {
   const { data: session } = authClient.useSession()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [formData, setFormData] = useState({
-    harari: '',
-    english: '',
-    amharic: '',
-    oromo: '',
-    partOfSpeech: 'noun',
-    category: '',
-    exampleHarari: '',
-    exampleEnglish: '',
-  })
+  const [draftRestored, setDraftRestored] = useState(false)
+  const [formData, setFormData] = useState(emptyForm)
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY)
+      if (saved) {
+        setFormData({ ...emptyForm, ...JSON.parse(saved) })
+        setDraftRestored(true)
+      }
+    } catch {
+      // ignore corrupt draft
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!session?.user) return
+    const hasContent =
+      formData.harari ||
+      formData.english ||
+      formData.amharic ||
+      formData.oromo ||
+      formData.category ||
+      formData.exampleHarari ||
+      formData.exampleEnglish
+    if (!hasContent) {
+      localStorage.removeItem(DRAFT_KEY)
+      return
+    }
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(formData))
+  }, [formData, session?.user])
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -41,16 +75,9 @@ export default function ContributePage() {
     try {
       await createEntry(formData)
       setSuccess(true)
-      setFormData({
-        harari: '',
-        english: '',
-        amharic: '',
-        oromo: '',
-        partOfSpeech: 'noun',
-        category: '',
-        exampleHarari: '',
-        exampleEnglish: '',
-      })
+      setFormData(emptyForm)
+      localStorage.removeItem(DRAFT_KEY)
+      setDraftRestored(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submission failed')
     } finally {
@@ -60,7 +87,7 @@ export default function ContributePage() {
 
   if (!session?.user) {
     return (
-      <Shell showSearch={false}>
+      <Shell>
         <div className="max-w-md mx-auto text-center py-16 space-y-4">
           <h1 className="text-2xl font-bold">Sign in to contribute</h1>
           <p className="text-muted-foreground">
@@ -78,7 +105,7 @@ export default function ContributePage() {
   }
 
   return (
-    <Shell showSearch={false}>
+    <Shell>
       <div className="space-y-6 max-w-2xl mx-auto">
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold text-foreground">Contribute to RAAFAT</h1>
@@ -93,6 +120,12 @@ export default function ContributePage() {
             New entries are saved with status <strong>pending review</strong> and reviewed by moderators.
           </p>
         </div>
+
+        {draftRestored && !success && (
+          <div className="p-3 rounded-lg bg-muted text-sm text-muted-foreground text-center">
+            Restored your saved draft
+          </div>
+        )}
 
         {success && (
           <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 flex gap-3">
