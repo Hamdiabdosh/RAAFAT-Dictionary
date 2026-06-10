@@ -39,9 +39,12 @@ export function Shell({ children, showSearch = true }: ShellProps) {
     }
   }
 
+  const role = (session?.user as { role?: string } | undefined)?.role
+  const isReviewer = role === 'reviewer' || role === 'admin'
+
   const navItems = [
     { href: '/', label: 'Dictionary', icon: '📚' },
-    { href: '/review', label: 'Review Queue', icon: '✓' },
+    ...(isReviewer ? [{ href: '/review', label: 'Review Queue', icon: '✓' }] : []),
     { href: '/contribute', label: 'Contribute', icon: '✏️' },
     { href: '/about', label: 'About', icon: 'ℹ️' },
   ]
@@ -80,7 +83,7 @@ export function Shell({ children, showSearch = true }: ShellProps) {
       <div className="flex">
         {/* Sidebar */}
         <aside
-          className={`fixed md:static inset-y-0 left-0 z-30 w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-300 ease-in-out ${
+          className={`fixed inset-y-0 left-0 z-30 w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-300 ease-in-out ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
           }`}
         >
@@ -116,9 +119,12 @@ export function Shell({ children, showSearch = true }: ShellProps) {
             <div className="border-t border-sidebar-border p-4 space-y-2">
               {session?.user ? (
                 <>
-                  <p className="px-4 text-xs text-sidebar-foreground/60 truncate">
+                  <Link
+                    href="/profile"
+                    className="block px-4 text-xs text-sidebar-foreground/60 truncate hover:text-sidebar-foreground"
+                  >
                     {session.user.name}
-                  </p>
+                  </Link>
                   <button
                     onClick={handleSignOut}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/10 transition-colors"
@@ -141,7 +147,7 @@ export function Shell({ children, showSearch = true }: ShellProps) {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 w-full">
+        <main className="flex-1 w-full md:ml-64 min-h-screen">
           {showSearch && (
             <div className="sticky top-0 z-20 border-b border-border bg-card/80 backdrop-blur-sm">
               <div className="max-w-6xl mx-auto px-4 md:px-6 py-4">

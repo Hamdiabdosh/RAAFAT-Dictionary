@@ -1,10 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, CheckCircle2, Clock, Copy, Check, ChevronDown
 } from 'lucide-react'
+import { authClient } from '@/lib/auth-client'
 
 interface Suggestion {
   id: string
@@ -49,6 +51,7 @@ const ETHIOPIC_FIELDS = ['harari', 'amharic', 'exampleHarari']
 
 export function EntryDetailPage({ entry }: Props) {
   const router = useRouter()
+  const { data: session } = authClient.useSession()
   const [copied, setCopied] = useState<string | null>(null)
   const [correctionOpen, setCorrectionOpen] = useState(false)
   const [selectedField, setSelectedField] = useState('english')
@@ -82,7 +85,10 @@ export function EntryDetailPage({ entry }: Props) {
           note,
         }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Submission failed')
+      }
       setSubmitted(true)
       setNewValue('')
       setNote('')
@@ -90,8 +96,8 @@ export function EntryDetailPage({ entry }: Props) {
         setCorrectionOpen(false)
         setSubmitted(false)
       }, 3000)
-    } catch {
-      setSubmitError('Failed to submit. Please try again.')
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to submit. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -213,7 +219,14 @@ export function EntryDetailPage({ entry }: Props) {
 
         {correctionOpen && (
           <div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
-            {submitted ? (
+            {!session?.user ? (
+              <div className="text-center space-y-3 py-4">
+                <p className="text-sm text-muted-foreground">Sign in to suggest a correction</p>
+                <Link href="/login" className="inline-block px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium">
+                  Sign In
+                </Link>
+              </div>
+            ) : submitted ? (
               <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                 <CheckCircle2 size={18} />
                 <span className="text-sm font-medium">Correction submitted — thank you!</span>

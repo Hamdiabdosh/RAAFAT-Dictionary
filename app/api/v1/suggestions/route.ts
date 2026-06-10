@@ -1,15 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { headers } from 'next/headers'
-import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { requireAuth, requireRole } from '@/lib/auth-utils'
+import { aggregateVotes, isValidSuggestionField } from '@/lib/suggestions'
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await requireRole('reviewer', 'admin')
+    if (!session) {
+      return NextResponse.json({ error: 'Reviewer access required' }, { status: 403 })
+    }
+
+    const { searchParams } = req.nextUrl
+    const status = searchParams.get('status') ?? 'pending'
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
+    const limit = 20
+    const offset = (page - 1) * limit
+
+    const where =
+      status === 'all' ? {} : { status: status as 'pending' | 'approved' | 'rejected' }
+
+    const [rows, total] = await Promise.all([
+      prisma.suggestion.findMany({
+        where,
+        include: {
+          submitter: { select: { name: true } },
+          entry: { select: { harari: true } },
+          votes: { select: { voteType: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.suggestion.count({ where }),
+    ])
+
+    const suggestions = rows.map((s) => ({
+      id: s.id,
+      entryId: s.entryId,
+      entryHarari: s.entry.harari,
+      fieldName: s.fieldName,
+      oldValue: s.oldValue,
+      newValue: s.newValue,
+      submittedBy: s.submitter.name,
+      status: s.status,
+      votes: aggregateVotes(s.votes),
+      createdAt: s.createdAt.toISOString(),
+    }))
+
+    return NextResponse.json({
+      suggestions,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
+      },
+    })
+  } catch (error) {
+    console.error('[GET /api/v1/suggestions]', error)
+    return NextResponse.json({ error: 'Failed to fetch suggestions' }, { status: 500 })
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
-
-    if (!session?.user) {
+    const session = await requireAuth()
+    if (!session) {
       return NextResponse.json(
         { error: 'You must be signed in to submit a correction' },
         { status: 401 }
@@ -26,8 +84,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const validFields = ['harari', 'english', 'amharic', 'oromo', 'exampleHarari', 'exampleEnglish']
-    if (!validFields.includes(fieldName)) {
+    if (!isValidSuggestionField(fieldName)) {
       return NextResponse.json({ error: 'Invalid fieldName' }, { status: 400 })
     }
 
@@ -44,9 +101,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ suggestion }, { status: 201 })
   } catch (error) {
     console.error('[POST /api/v1/suggestions]', error)
-    return NextResponse.json(
-      { error: 'Failed to submit suggestion' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to submit suggestion' }, { status: 500 })
   }
 }

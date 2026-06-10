@@ -36,11 +36,12 @@ export type VoteType = 'correct' | 'incorrect' | 'needs_discussion'
 export interface Suggestion {
   id: string
   entryId: string
+  entryHarari?: string
   fieldName: keyof Pick<DictionaryEntry, 'harari' | 'english' | 'amharic' | 'oromo' | 'exampleHarari' | 'exampleEnglish'>
   oldValue: string
   newValue: string
   submittedBy: string
   status: SuggestionStatus
   votes: { correct: number; incorrect: number; needs_discussion: number }
-  createdAt: Date
+  createdAt: Date | string
 }
