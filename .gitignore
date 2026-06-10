@@ -39,3 +39,4 @@ Thumbs.db
 
 # Misc
 *.zip
+prisma/seed.bundle.cjs

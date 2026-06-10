@@ -5,6 +5,6 @@ node_modules
 .env.local
 .env*.local
 *.md
-docs
-meshia_dictionary.json
 meshia_dictionary.csv
+.cursor
+.agent-transcripts

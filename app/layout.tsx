@@ -13,11 +13,15 @@ const notoSerifEthiopic = Noto_Serif_Ethiopic({
   subsets: ['ethiopic'],
 })
 
+const appUrl =
+  process.env.NEXT_PUBLIC_APP_URL ??
+  process.env.BETTER_AUTH_URL ??
+  'http://localhost:3000'
+
 export const metadata: Metadata = {
   title: 'RAAFAT Dictionary - Harari Language',
   description: 'Explore and contribute to the Harari language dictionary. Search, learn, and help preserve this rich linguistic heritage.',
-  generator: 'v0.app',
-  metadataBase: new URL('https://raafat-dictionary.vercel.app'),
+  metadataBase: new URL(appUrl),
   keywords: ['Harari', 'dictionary', 'language', 'Ethiopia', 'linguistic', 'heritage'],
   icons: {
     icon: [

@@ -5,6 +5,28 @@ import { prisma } from '@/lib/db'
 const authUrl = process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 const isProduction = process.env.NODE_ENV === 'production'
 
+function buildTrustedOrigins(): string[] {
+  const origins = new Set<string>([
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+  ])
+  for (const url of [process.env.BETTER_AUTH_URL, process.env.NEXT_PUBLIC_APP_URL]) {
+    if (!url) continue
+    origins.add(url)
+    try {
+      const parsed = new URL(url)
+      if (parsed.hostname.startsWith('www.')) {
+        origins.add(`${parsed.protocol}//${parsed.hostname.slice(4)}${parsed.port ? `:${parsed.port}` : ''}`)
+      } else {
+        origins.add(`${parsed.protocol}//www.${parsed.hostname}${parsed.port ? `:${parsed.port}` : ''}`)
+      }
+    } catch {
+      // ignore invalid URLs
+    }
+  }
+  return [...origins]
+}
+
 export const auth = betterAuth({
   baseURL: isProduction
     ? authUrl
@@ -13,11 +35,7 @@ export const auth = betterAuth({
         protocol: 'http',
         fallback: authUrl,
       },
-  trustedOrigins: [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : []),
-  ],
+  trustedOrigins: buildTrustedOrigins(),
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),

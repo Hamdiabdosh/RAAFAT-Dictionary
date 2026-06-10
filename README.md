@@ -80,14 +80,31 @@ GOOGLE_CLIENT_SECRET=...
 NEXT_PUBLIC_GOOGLE_ENABLED=true
 ```
 
-## Production (Coolify / Docker)
+## Production Deployment
 
-1. Build from `Dockerfile` or connect repo in Coolify
-2. Add a PostgreSQL service and set `DATABASE_URL`
-3. Set `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL` to your domain
-4. Run migrations on deploy: `npx prisma migrate deploy`
-5. Seed once: `npm run db:seed`
-6. Point DNS to your server; Coolify handles SSL
+See **[docs/DEPLOY.md](docs/DEPLOY.md)** for the full guide.
+
+### Quick reference
+
+```bash
+cp .env.production.example .env   # edit values
+docker compose up -d --build
+```
+
+**Coolify:** Dockerfile build, port `3000`, health check `/api/health`.
+
+**Required env vars:**
+
+| Variable | Example |
+|----------|---------|
+| `DATABASE_URL` | `postgresql://user:pass@host:5432/raafat` |
+| `BETTER_AUTH_SECRET` | output of `openssl rand -base64 32` |
+| `BETTER_AUTH_URL` | `https://dictionary.example.com` |
+| `NEXT_PUBLIC_APP_URL` | `https://dictionary.example.com` |
+
+**First deploy only:** set `RUN_DB_SEED=true` to import dictionary data, then disable.
+
+Migrations run automatically on container start.
 
 ## API Routes
 
