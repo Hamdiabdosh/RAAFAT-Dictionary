@@ -1,0 +1,333 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.wrap { padding: 1rem 0; }
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+.stat { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 0.85rem 1rem; }
+.stat-num { font-size: 22px; font-weight: 500; color: var(--color-text-primary); }
+.stat-label { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+.stat-num.good { color: var(--color-text-success); }
+.stat-num.warn { color: var(--color-text-warning); }
+.controls { display: flex; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+.controls input[type=text] { flex: 1; min-width: 160px; }
+.controls select { width: 130px; }
+.table-wrap { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13px; }
+thead th { background: var(--color-background-secondary); padding: 8px 10px; text-align: left; font-weight: 500; font-size: 12px; color: var(--color-text-secondary); border-bottom: 0.5px solid var(--color-border-tertiary); }
+thead th:nth-child(1) { width: 36px; }
+thead th:nth-child(2) { width: 50px; }
+thead th:nth-child(3), thead th:nth-child(4), thead th:nth-child(5), thead th:nth-child(6) { width: calc((100% - 86px - 70px) / 4); }
+thead th:last-child { width: 70px; }
+tbody tr { border-bottom: 0.5px solid var(--color-border-tertiary); transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--color-background-secondary); }
+tbody tr.verified-row { background: var(--color-background-success); }
+td { padding: 6px 10px; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td.missing { color: var(--color-text-danger); font-style: italic; font-size: 11px; }
+td.editable { cursor: pointer; }
+td.editable:hover { background: var(--color-background-info); border-radius: 3px; }
+.edit-input { width: 100%; border: 1px solid var(--color-border-primary); border-radius: 4px; padding: 2px 4px; font-size: 13px; font-family: var(--font-sans); background: var(--color-background-primary); color: var(--color-text-primary); }
+.badge { display: inline-flex; align-items: center; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+.badge.verified { background: var(--color-background-success); color: var(--color-text-success); }
+.badge.unverified { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+.btn { padding: 6px 14px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-primary); cursor: pointer; font-size: 13px; font-family: var(--font-sans); }
+.btn:hover { background: var(--color-background-secondary); }
+.btn.primary { background: var(--color-background-primary); border-color: var(--color-border-primary); font-weight: 500; }
+.btn.success { border-color: var(--color-border-success); color: var(--color-text-success); }
+.pagination { display: flex; align-items: center; gap: 8px; margin-top: 1rem; justify-content: space-between; }
+.page-info { font-size: 13px; color: var(--color-text-secondary); }
+.section-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem; }
+.sec-btn { padding: 3px 10px; border-radius: 20px; border: 0.5px solid var(--color-border-tertiary); background: transparent; font-size: 12px; cursor: pointer; color: var(--color-text-secondary); font-family: var(--font-sans); }
+.sec-btn:hover, .sec-btn.active { background: var(--color-background-secondary); color: var(--color-text-primary); border-color: var(--color-border-secondary); }
+.import-area { border: 0.5px dashed var(--color-border-secondary); border-radius: var(--border-radius-lg); padding: 1.5rem; text-align: center; margin-bottom: 1.5rem; cursor: pointer; }
+.import-area:hover { background: var(--color-background-secondary); }
+.import-area p { font-size: 13px; color: var(--color-text-secondary); margin-top: 6px; }
+.toolbar { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; }
+.toolbar-left { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+</style>
+
+<div class="wrap">
+  <h2 class="sr-only">Meshia dictionary cross-check and review tool</h2>
+
+  <div id="import-section">
+    <div class="import-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <i class="ti ti-file-upload" style="font-size:28px; color:var(--color-text-secondary)" aria-hidden="true"></i>
+      <p>Click or drag to load <strong>meshia_dictionary.json</strong></p>
+      <p>Your file stays local — nothing is uploaded</p>
+    </div>
+    <input type="file" id="file-input" accept=".json" style="display:none">
+    <p style="font-size:12px;color:var(--color-text-secondary);text-align:center;margin-bottom:1rem">Or use the demo data below</p>
+    <div style="text-align:center"><button class="btn primary" onclick="loadDemo()">Load demo (first 50 entries)</button></div>
+  </div>
+
+  <div id="main-section" style="display:none">
+    <div class="stats-row" id="stats-row"></div>
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input type="text" id="search" placeholder="Search any language..." oninput="applyFilters()" style="width:200px">
+        <select id="filter-status" onchange="applyFilters()">
+          <option value="all">All entries</option>
+          <option value="unverified">Needs review</option>
+          <option value="verified">Verified</option>
+          <option value="incomplete">Incomplete</option>
+        </select>
+        <select id="filter-section" onchange="applyFilters()">
+          <option value="all">All sections</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="exportJSON()"><i class="ti ti-download" aria-hidden="true"></i> Export JSON</button>
+        <button class="btn" onclick="exportCSV()"><i class="ti ti-file-text" aria-hidden="true"></i> Export CSV</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Page</th>
+            <th>Amharic <span style="font-weight:400;opacity:.6">(አ)</span></th>
+            <th>Harari <span style="font-weight:400;opacity:.6">(ሀ)</span></th>
+            <th>Oromo</th>
+            <th>English</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <button class="btn" onclick="prevPage()"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+      <span class="page-info" id="page-info"></span>
+      <button class="btn" onclick="nextPage()"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+    </div>
+
+    <div style="margin-top:1rem;font-size:12px;color:var(--color-text-secondary)">
+      <i class="ti ti-info-circle" aria-hidden="true"></i>
+      Click any cell to edit it. Click the status badge to toggle verified.
+    </div>
+  </div>
+</div>
+
+<script>
+let allEntries = [];
+let filtered = [];
+let page = 0;
+const PAGE_SIZE = 25;
+let editingCell = null;
+
+const DEMO_DATA = [
+  {id:1,page:11,section:"ሀ",amharic:"",harari:"",oromo:"ሀ",english:"",verified:false},
+  {id:2,page:11,section:"ሀ",amharic:"ሀላፊ",harari:"መስኡል",oromo:"itti gaafatamaa",english:"responsible",verified:false},
+  {id:3,page:11,section:"ሀ",amharic:"ሀላፊነት",harari:"መስኡኩሊያ",oromo:"itti gaafatamummaa",english:"responsibility",verified:false},
+  {id:4,page:11,section:"ሀ",amharic:"ሀሞት",harari:"ሚራር",oromo:"hadhaawaa",english:"gal",verified:false},
+  {id:5,page:11,section:"ሀ",amharic:"ሀረሪ ከልል",harari:"ሀረሪ ሑስኒ",oromo:"naannoo harari",english:"harari region",verified:false},
+  {id:6,page:11,section:"ሀ",amharic:"ሀረሪ",harari:"ሀረሪ",oromo:"Harari",english:"harari",verified:false},
+  {id:7,page:11,section:"ሀ",amharic:"ሀረር ከተማ",harari:"ሀረር ጌይ",oromo:"magaalaa harar",english:"harar city",verified:false},
+  {id:8,page:11,section:"ሀ",amharic:"ሀረር",harari:"ሀረር",oromo:"Harar",english:"hararr",verified:false},
+  {id:9,page:11,section:"ሀ",amharic:"ሀረገ",harari:"ሐረግ",oromo:"Quncee/ Haraga",english:"Phrase, stiring",verified:false},
+  {id:10,page:11,section:"ሀ",amharic:"ሀራጅ",harari:"ሐራጅ",oromo:"Caalbaasii",english:"Auction",verified:false},
+  {id:11,page:11,section:"ሀ",amharic:"ሀቪሽ",harari:"በንጂ",oromo:"Hashiisha/banjii",english:"Narcotin / cocain",verified:false},
+  {id:12,page:11,section:"ሀ",amharic:"ሀቀና",harari:"ሐቀኝኛ",oromo:"Haqa qabeessa/",english:"Trustfull",verified:false},
+  {id:13,page:11,section:"ሀ",amharic:"ሀቅ",harari:"ሐቅ",oromo:"Haqa",english:"Infant",verified:false},
+  {id:14,page:11,section:"ሀ",amharic:"ሀተታ",harari:"ተርር",oromo:"hololoo",english:"Narrative",verified:false},
+  {id:15,page:11,section:"ሀ",amharic:"ሀኒድ",harari:"ሐኒድ",oromo:"Haniida/foon bilchaate",english:"Choked",verified:false},
+  {id:16,page:11,section:"ሀ",amharic:"ሀኪም",harari:"ሐኪም",oromo:"Haakima",english:"Physician",verified:false},
+  {id:17,page:11,section:"ሀ",amharic:"ሀውልት",harari:"ተምሳል",oromo:"Siidaa",english:"Statue",verified:false},
+  {id:18,page:20,section:"ሌ",amharic:"ለቀ",harari:"በደራ",oromo:"Guddate",english:"Preponderate",verified:false},
+  {id:19,page:20,section:"ሌ",amharic:"ለባ",harari:"ከት",oromo:"Goblaa",english:"Feather",verified:false},
+  {id:20,page:20,section:"ሌ",amharic:"ለብ",harari:"ዊዚእ",oromo:"Dafqa",english:"Sweat",verified:false},
+  {id:21,page:100,section:"ሸ",amharic:"ሸንጎ",harari:"ቨንጎ",oromo:"gumii",english:"assembly",verified:true},
+  {id:22,page:100,section:"ሸ",amharic:"ሸቀጥ",harari:"ቤዛር",oromo:"gabaa",english:"market",verified:false},
+  {id:23,page:100,section:"ሸ",amharic:"ሸቀጣ ሸቀጥ",harari:"ዕቃ",oromo:"meeshaa",english:"goods",verified:false},
+  {id:24,page:150,section:"ብ",amharic:"ብርሃን",harari:"",oromo:"ifaa",english:"light",verified:false},
+  {id:25,page:150,section:"ብ",amharic:"ብዛት",harari:"ቁጽሪ",oromo:"baay'ina",english:"quantity",verified:false},
+];
+
+function loadDemo() {
+  allEntries = DEMO_DATA.map(e => ({...e}));
+  init();
+}
+
+document.getElementById('file-input').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      allEntries = JSON.parse(ev.target.result);
+      init();
+    } catch(err) {
+      alert('Could not parse JSON file.');
+    }
+  };
+  r.readAsText(f);
+});
+
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.background = 'var(--color-background-secondary)'; });
+dz.addEventListener('dragleave', () => { dz.style.background = ''; });
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.style.background = '';
+  const f = e.dataTransfer.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => { try { allEntries = JSON.parse(ev.target.result); init(); } catch(err) { alert('Invalid JSON.'); } };
+  r.readAsText(f);
+});
+
+function init() {
+  document.getElementById('import-section').style.display = 'none';
+  document.getElementById('main-section').style.display = 'block';
+  populateSectionFilter();
+  applyFilters();
+  renderStats();
+}
+
+function populateSectionFilter() {
+  const sel = document.getElementById('filter-section');
+  const sections = [...new Set(allEntries.map(e => e.section).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="all">All sections</option>';
+  sections.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    sel.appendChild(o);
+  });
+}
+
+function renderStats() {
+  const total = allEntries.length;
+  const verified = allEntries.filter(e => e.verified).length;
+  const all4 = allEntries.filter(e => e.amharic && e.harari && e.oromo && e.english).length;
+  const incomplete = allEntries.filter(e => !e.amharic || !e.harari).length;
+  const sections = new Set(allEntries.map(e => e.section)).size;
+  const pct = v => Math.round(100*v/total) + '%';
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat"><div class="stat-num">${total.toLocaleString()}</div><div class="stat-label">Total entries</div></div>
+    <div class="stat"><div class="stat-num good">${verified.toLocaleString()} <span style="font-size:14px;font-weight:400">(${pct(verified)})</span></div><div class="stat-label">Verified</div></div>
+    <div class="stat"><div class="stat-num good">${all4.toLocaleString()} <span style="font-size:14px;font-weight:400">(${pct(all4)})</span></div><div class="stat-label">All 4 languages</div></div>
+    <div class="stat"><div class="stat-num warn">${incomplete.toLocaleString()} <span style="font-size:14px;font-weight:400">(${pct(incomplete)})</span></div><div class="stat-label">Need correction</div></div>
+  `;
+}
+
+function applyFilters() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const status = document.getElementById('filter-status').value;
+  const section = document.getElementById('filter-section').value;
+
+  filtered = allEntries.filter(e => {
+    if (section !== 'all' && e.section !== section) return false;
+    if (status === 'verified' && !e.verified) return false;
+    if (status === 'unverified' && e.verified) return false;
+    if (status === 'incomplete' && e.amharic && e.harari && e.oromo && e.english) return false;
+    if (q && !['amharic','harari','oromo','english'].some(k => (e[k]||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+  page = 0;
+  renderTable();
+}
+
+function renderTable() {
+  const start = page * PAGE_SIZE;
+  const slice = filtered.slice(start, start + PAGE_SIZE);
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+
+  slice.forEach(entry => {
+    const tr = document.createElement('tr');
+    if (entry.verified) tr.classList.add('verified-row');
+    tr.innerHTML = `
+      <td style="font-size:11px;color:var(--color-text-secondary)">${entry.id}</td>
+      <td style="font-size:11px;color:var(--color-text-secondary)">${entry.page}</td>
+      ${makeEditCell(entry, 'amharic')}
+      ${makeEditCell(entry, 'harari')}
+      ${makeEditCell(entry, 'oromo')}
+      ${makeEditCell(entry, 'english')}
+      <td style="text-align:center">
+        <span class="badge ${entry.verified ? 'verified' : 'unverified'}" 
+              style="cursor:pointer" onclick="toggleVerified(${entry.id})" title="Click to toggle">
+          ${entry.verified ? '✓ ok' : 'review'}
+        </span>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const total = filtered.length;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  document.getElementById('page-info').textContent =
+    `${start+1}–${Math.min(start+PAGE_SIZE, total)} of ${total.toLocaleString()} entries  (page ${page+1}/${totalPages})`;
+}
+
+function makeEditCell(entry, field) {
+  const val = entry[field];
+  if (!val) return `<td class="missing editable" onclick="startEdit(this, ${entry.id}, '${field}')">—</td>`;
+  return `<td class="editable" onclick="startEdit(this, ${entry.id}, '${field}')" title="${val}">${val}</td>`;
+}
+
+function startEdit(td, id, field) {
+  if (editingCell) commitEdit();
+  const entry = allEntries.find(e => e.id === id);
+  if (!entry) return;
+  editingCell = { td, id, field };
+  const inp = document.createElement('input');
+  inp.className = 'edit-input';
+  inp.value = entry[field] || '';
+  inp.onblur = commitEdit;
+  inp.onkeydown = e => {
+    if (e.key === 'Enter') commitEdit();
+    if (e.key === 'Escape') { editingCell = null; renderTable(); }
+    e.stopPropagation();
+  };
+  td.innerHTML = '';
+  td.appendChild(inp);
+  inp.focus();
+  inp.select();
+}
+
+function commitEdit() {
+  if (!editingCell) return;
+  const { td, id, field } = editingCell;
+  editingCell = null;
+  const entry = allEntries.find(e => e.id === id);
+  if (!entry) return;
+  const inp = td.querySelector('input');
+  if (inp) {
+    entry[field] = inp.value.trim();
+    entry.verified = false;
+  }
+  renderStats();
+  renderTable();
+}
+
+function toggleVerified(id) {
+  const entry = allEntries.find(e => e.id === id);
+  if (entry) { entry.verified = !entry.verified; renderStats(); renderTable(); }
+}
+
+function prevPage() { if (page > 0) { page--; renderTable(); } }
+function nextPage() { const max = Math.ceil(filtered.length / PAGE_SIZE) - 1; if (page < max) { page++; renderTable(); } }
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(allEntries, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'meshia_dictionary_reviewed.json';
+  a.click();
+}
+
+function exportCSV() {
+  const headers = ['id','section','page','amharic','harari','oromo','english','verified'];
+  const rows = allEntries.map(e => headers.map(h => `"${(e[h]||'').toString().replace(/"/g,'""')}"`).join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'meshia_dictionary_reviewed.csv';
+  a.click();
+}
+</script>
